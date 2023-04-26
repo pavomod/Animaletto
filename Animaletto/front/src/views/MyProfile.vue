@@ -1,5 +1,5 @@
 <template>
-  <ion-page >
+  <ion-page>
     <ion-header>
       <ion-toolbar color="primary">
 
@@ -14,15 +14,15 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content :class="'ion-padding'">
+    <ion-content :class="'ion-padding'" >
       <ion-list class="nascondi">
-      <div v-if="data.length > 0">
+      <div v-if="data.length != 0" >
         <ion-card v-for="(animal, index) in data" :key="index">
           <div class="ion-content-scroll-host" >
           <ion-card-header>
             <ion-card-subtitle>Tipologia: {{ animal.tipologia }}</ion-card-subtitle>
             <ion-card-title>{{ animal.nome_animale }}</ion-card-title>
-            <ion-img :style="{ width: '250px', height: '250px'}" :src="'data:image/;base64,'+animal.file" ></ion-img>
+            <ion-img :style="{ width: '250px', height: '250px'}" :src="'data:image/;base64,'+animal.file"></ion-img>
           </ion-card-header>
 
           <ion-card-content>
@@ -82,45 +82,84 @@
         </ion-card>
         </div>
         <div v-else>
-          Pubblica il tuo primo post 
+          <h1 style="color:white;text-align:center;">Pubblica il tuo primo post</h1> 
         </div>
       </ion-list>
     </ion-content>
   </ion-page>
 </template>
 <script setup>
-import {IonButton,IonImg, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,IonToolbar,IonHeader,IonLabel,IonText,IonItem,IonList,IonContent,IonPage} from '@ionic/vue';
-import { ref, onMounted } from 'vue';
+import {loadingController ,onIonViewWillEnter,IonButtons,IonButton,IonImg, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,IonToolbar,IonHeader,IonLabel,IonText,IonItem,IonList,IonContent,IonPage} from '@ionic/vue';
+import { ref } from 'vue';
 import axios from 'axios';
+import { useRouter } from "vue-router";
 
 
 
+
+const showLoading = async () => {
+        const loading = await loadingController.create({
+          message: 'Caricamento...',
+          duration: 2000
+        });
+        
+        loading.present();
+      }
+const load=ref({load:false})
 const data = ref([]);
+const router = useRouter();
 
-const logout=()=>{localStorage.setItem("token","");window.location.href = '/auth'}
-const newPost=()=>{window.location.href = '/newPost'}
-const dashboard=()=>{window.location.href = '/dashboard'}
-const getPosto = () =>{  axios.get('http://192.168.248.104:5000/getMyPost',{
+const logout=()=>{
+  localStorage.setItem("refresh","1"); //forzo il refresh
+  localStorage.setItem("token",""); //rimuovo il token
+  router.push("/auth")
+  }
+
+const newPost=()=>{router.push("/newPost")}
+const dashboard=()=>{router.push("/dashboard")}
+const getPosto = () =>{  
+  axios.get('http://127.0.0.1:5000/getMyPost',{
     headers: {
       "Authorization": localStorage.getItem("token")
     }
   })
   .then( response => {
+    if(response.status!=404)
     data.value=response.data
   })
-  .catch(error => {
-    console.log(error);
+  .catch(() => {
+    console.log("Nessun post trovato");
+
   });}
-onMounted(() => {
-  if(localStorage.getItem("token"))
+  //refresh del profilo se richiesto e salvataggio del token
+  onIonViewWillEnter(() => {
+
+    if(!load.value.load){
+      showLoading()
+      load.value.load=true
+    }
+  if(localStorage.getItem("token")){
+
+    if(localStorage.getItem("refresh")=="1")
+    {
+      localStorage.setItem("refresh","")
+      window.location.reload()
+    }
+      
     getPosto()
+  }
+
   else
-  window.location.href = '/auth'
+  router.push("/auth")
+
+
 });
 
+
+
 const deletePost = (postId) => {
-      console.log(postId)
-      axios.post('http://192.168.248.104:5000//deletePost',  {
+      
+      axios.post('http://127.0.0.1:5000/deletePost',  {
         "id":postId
       },{
             headers: {
@@ -132,13 +171,20 @@ const deletePost = (postId) => {
       .then(response => {
         if(response.status!=404)
         {
+          Notification.requestPermission()
+         .then(permission => {
+          if (permission === 'granted') {
+            new Notification('Animaletto', {
+              body: 'Post cancellato con successo!'
+            });
+          }
+        });
           getPosto()
           window.location.reload()
         }
       })
-      .catch(error => {
-        // show an error message, e.g.
-        console.error(`Errore durante l'eliminazione del post ${postId}: ${error}`);
+      .catch(() => {
+        console.error("");
       });
     }
 

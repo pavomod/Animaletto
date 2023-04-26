@@ -7,7 +7,6 @@
     </ion-header>
 
     <ion-content class="ion-padding">
-
         <ion-item>
           <ion-label position="floating"><b>Username</b></ion-label>
           <ion-input v-model="data.username"></ion-input>
@@ -32,12 +31,18 @@
 <script>
 import axios from 'axios'
 import { defineComponent, ref } from "vue";
-import { IonItem, IonLabel, IonInput, IonButton } from "@ionic/vue";
+import { useRouter } from "vue-router";
+import { IonPage,IonContent,IonHeader,IonToolbar,IonTitle,IonItem, IonLabel, IonInput, IonButton } from "@ionic/vue";
 
 
 export default defineComponent({
   name: 'LoginPage',
   components: {
+      IonPage,
+      IonContent,
+      IonHeader,
+      IonToolbar,
+      IonTitle,
       IonItem,
       IonLabel,
       IonInput,
@@ -45,20 +50,29 @@ export default defineComponent({
     },
   setup() {
 
+    Notification.requestPermission()
+         .then(permission => {
+          if (permission === 'granted') {
+            new Notification('Animaletto', {
+              body: 'Benvenuto su animaletto!'
+            });
+          }
+        });
+    const router = useRouter();
     const data = ref ({
       username: "",
       password: "",
       error: ""
     });
     const goToSignUp = () => {
-      window.location.href = '/signup'
+      router.push("/signup");
       };
     const login = () => {
       if (data.value.username === "" || data.value.password === "") {
-        alert("Errore: stringhe vuote.");
+        alert("Errore: Inserisci dei valori.");
         return;
       }
-      axios.post('http://192.168.248.104:5000/login', { 
+      axios.post('http://127.0.0.1:5000/login', { 
         username: data.value.username, 
         password: data.value.password 
       },{
@@ -68,19 +82,27 @@ export default defineComponent({
         }
 
       )
-      .then(async (response) => {
-        localStorage.setItem('token', response.data.token);
-        window.location.href = '/profile'
+      .then(response => {
+        if(response.status==200)
+        {
+          localStorage.setItem("refresh", "1"); //richiedo il refresh della pagina
+          localStorage.setItem('token', response.data.token); //salvataggio del token ricevuto dal back
+          router.push("/profile")          
+        }
       })
-      .catch(error => {
-        
-        alert("errore backend: "+error)
+      .catch(() => {
+        alert("Credenziali errate")
       })
     }
+
+    
 
     return { data, login,goToSignUp };
   }
 });
+
+
+
 </script>
   
 

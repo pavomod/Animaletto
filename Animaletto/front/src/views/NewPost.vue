@@ -86,7 +86,7 @@
               </ion-item>
 
             <ion-item>
-                <ion-label position="stacked">Eta</ion-label>
+                <ion-label position="stacked">Età</ion-label>
                 <ion-select v-model="data.anni">
                   <ion-select-option value="0">0</ion-select-option>
                   <ion-select-option value="1">1</ion-select-option>
@@ -135,11 +135,19 @@
   <script>
   import axios from 'axios'
   import { defineComponent, ref } from "vue";
-  import { IonItem, IonLabel, IonSelect, IonButton,IonInput } from "@ionic/vue";
-  
+  import { loadingController,IonContent,IonPage,IonSelectOption,IonList,IonToolbar,IonHeader,IonTitle,IonButtons,IonItem, IonLabel, IonSelect, IonButton,IonInput } from "@ionic/vue";
+  import { useRouter } from "vue-router";
   
   export default defineComponent({
     components: {
+        IonContent,
+        IonPage,
+        IonSelectOption,
+        IonList,
+        IonToolbar,
+        IonHeader,
+        IonTitle,
+        IonButtons,
         IonItem,
         IonLabel,
         IonSelect,
@@ -147,7 +155,7 @@
         IonInput
       },
       setup() {
-
+      const router = useRouter();
       const data = ref ({
         tipologia: "",
         razza: "",
@@ -160,9 +168,9 @@
         descrizione:"",
         nome_animale:"",
         file:null
-      });
+      }); //informazioni sull'annuncio da pubblicare
       
-      
+    //riduce la qualità dell'immagine  
     const handleChange = (event) => {
     const file = event.target.files[0];
     const reader = new FileReader();
@@ -185,30 +193,56 @@
 
   reader.readAsDataURL(file);
 };
+ 
+    const showLoading = async () => {
+            const loading = await loadingController.create({
+              message: 'Caricamento...',
+              duration: 4000
+            });
+            
+            loading.present();
+          }
 
-
-
-      const profile = () =>{window.location.href = '/profile'}
+      const profile = () =>{router.push("/profile")}
+      //controlla se l'annuncio rispetta i parametri richiesti, in caso positivo invia la richiesta al back
       const publish=()=> {
         if (data.value.nome_animale === "" || data.value.tipologia === "" || data.value.razza === "" || data.value.colore === ""|| data.value.taglia === ""  || data.value.vaccinato === "" || data.value.regione === "" || data.value.citta === "" || data.value.descrizione === "" || data.value.file==null) 
         {
-            alert("Compila tutti i campi");
+            alert("Errore: Compila tutti i campi");
             return;
+        }
+        if(isValidFormat(data.value.citta)||isValidFormat(data.value.nome_animale)||isValidFormat(data.value.razza))
+        {
+          alert("Errore: I campi città, nome e razza non possono contenere caratteri speciali");
+          return;
+        }
+
+
+        if(data.value.citta.length>20 || data.value.razza.length>20 ||data.value.nome_animale.length>20 || data.value.descrizione.length>100)
+        {
+          alert("Errore: I campi razza, città e nome non devono superare i 20 caratteri mentre il campo descrizione massimo 100 caratteri")
+          return;
+        }
+        if(data.value.citta.length<2||data.value.razza.length<2||data.value.nome_animale.length<2 || data.value.descrizione.length<20)
+        {
+          alert("Errore: I campi razza, città e nome devono contenere minimo 2 caratteri mentre il campo descrizione minimo 20 caratteri")
+          return;
+        }
+
+        if(data.value.file.size > 2*1024*1024) //massima dimensione upload
+        {
+          alert("Errore: La dimensione massima consentita per le foto è di 4MB")
+          return;
         }
 
         data.value.anni=Number(data.value.anni)
         if(isNaN(data.value.anni)||data.value.anni <0)
         {
-            alert("Inserisci un numero valido");
+            alert("Errore: Inserisci un numero valido");
             return;
         }
 
-        if(data.value.citta.length>20 || data.value.razza.length>20 || data.value.descrizione.length>20)
-        {
-          alert("I campi inseriti non devono supeare i 20 caratteri")
-          return;
-        }
-        
+        //converto le info in formData così da poter inviare anche la foto salvata in base64
         const formData = new FormData();
         formData.append("tipologia", data.value.tipologia);
         formData.append("razza", data.value.razza);
@@ -221,8 +255,8 @@
         formData.append("descrizione", data.value.descrizione);
         formData.append("nome_animale", data.value.nome_animale);
         formData.append("file", data.value.file); 
-        
-        axios.post('http://192.168.248.104:5000/publishPost',formData,{
+        showLoading()
+        axios.post('http://127.0.0.1:5000/publishPost',formData,{
               headers: {
                 "Content-Type": "multipart/form-data",
                 "Authorization": localStorage.getItem("token")
@@ -230,14 +264,31 @@
           }
           
           )
-        .then( ()=> {
-          window.location.href = '/profile'
+        .then( response=> {
+          if(response.status==200)
+          {
+            Notification.requestPermission()
+            .then(permission => {
+              if (permission === 'granted') {
+                new Notification('Animaletto', {
+                  body: 'Post pubblicato con successo!'
+                });
+          }
+        });
+            router.push("/profile")
+            localStorage.setItem("refresh",1) //refresh del profilo
+          }
         })
         .catch(() => {
           alert("errore")
           
         })
       }
+      function isValidFormat(stringa) 
+      {
+        return /[^\w\s]/gi.test(stringa);
+      }
+
       return{data,profile,publish,handleChange}
     }
   });

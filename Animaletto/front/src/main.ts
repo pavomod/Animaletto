@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router';
-
+import "./registerServiceWorker"
 import { IonicVue } from '@ionic/vue';
 
 /* Core CSS required for Ionic components to work properly */
@@ -23,15 +23,39 @@ import '@ionic/vue/css/display.css';
 /* Theme variables */
 import './theme/variables.css';
 // Above the createApp() line
+
 import { defineCustomElements } from '@ionic/pwa-elements/loader';
 
-// Call the element loader after the platform has been bootstrapped
+
+//inizio modifica
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAgK3JQn99YrlKpZJRzqHywvk0Fzpb_EpA",
+  authDomain: "animaletto-7a838.firebaseapp.com",
+  projectId: "animaletto-7a838",
+  storageBucket: "animaletto-7a838.appspot.com",
+  messagingSenderId: "92891756826",
+  appId: "1:92891756826:web:26c5c0b58683ff394bd4a3",
+  measurementId: "G-XLHYLGWWPE"
+};
+
+
+initializeApp(firebaseConfig);
+//fine modifica
+
 defineCustomElements(window);
 
 const app = createApp(App)
   .use(IonicVue)
   .use(router);
   
+
+
+
 router.isReady().then(() => {
   app.mount('#app');
 });
+

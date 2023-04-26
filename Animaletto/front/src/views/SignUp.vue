@@ -49,19 +49,24 @@
 <script>
 import axios from 'axios'
 import { defineComponent, ref } from "vue";
-import { IonItem, IonLabel, IonInput, IonButton } from "@ionic/vue";
-
+import { IonPage,IonContent,IonItem, IonLabel, IonInput, IonButton,IonTitle,IonToolbar,IonHeader } from "@ionic/vue";
+import { useRouter } from "vue-router";
 
 export default defineComponent({
   name: 'SignupPage',
   components: {
+      IonTitle,
+      IonHeader,
+      IonToolbar,
       IonItem,
       IonLabel,
       IonInput,
       IonButton,
+      IonPage,
+      IonContent
     },
     setup() {
-
+    const router = useRouter();
     const data = ref ({
       nome: "",
       cognome: "",
@@ -72,37 +77,53 @@ export default defineComponent({
       email:"",
       cellulare:""
     });
-    const goToLogin = () =>{window.location.href = '/auth'}
+    const goToLogin = () =>{router.push("/auth")}
     const registerUser=()=> {
       if (data.value.username === "" || data.value.password === "" || data.value.nome === ""|| data.value.cognome === "" || data.value.confirmPassword === "" || data.value.email === "" || data.value.cellulare === "") 
       {
         alert("Errore: stringhe vuote.");
         return;
       }
+      if(isValidFormat(data.value.nome) ||isValidFormat(data.value.cognome))
+      {
+        alert("Errore: I campi nome e cognome non possono contenere caratteri speciali");
+        return;
+      }
+
       if(data.value.password != data.value.confirmPassword)
       {
         alert("Errore: le password non sono uguali");
         return;
       }
-      if(data.value.cellulare.length>12)
+      if(data.value.password.length<8)
       {
-        alert("Inserisci un numero valido")
+        alert("Errore: la password deve essere lunga minimo 8");
         return;
       }
-        data.value.cellulare=Number(data.value.cellulare)
+      if(data.value.cellulare.length>12||data.value.cellulare.length<4)
+      {
+        alert("Il campo cellulare deve essere lungo minimo 4 e massimo 12")
+        return;
+      }
+        data.value.cellulare=Number(data.value.cellulare) //verifica che i dati inseriti siano effettivamente numerici
         if(isNaN(data.value.cellulare))
         {
           alert("Inserisci un numero valido");
           return;
         }
 
-        if(!data.value.email.includes("@") ||!data.value.email.includes(".")) 
+        if(!isValidEmail(data.value.email)) //tramite regex verifica la sintassi dell'email
         {
           alert("Email non valida");
           return;
         }
+        if(data.value.nome.length<2||data.value.cognome.length<2||data.value.username.length<2)
+        {
+          alert("Errore: I campi nome, cognome e username devono contenere minimo 2 caratteri")
+          return;
+        }
 
-      axios.post('http://192.168.248.104:5000/signin', {
+      axios.post('http://127.0.0.1:5000/signin', {
         nome: data.value.nome,
         cognome: data.value.cognome,
         username: data.value.username,
@@ -114,14 +135,38 @@ export default defineComponent({
               "Content-Type": "multipart/form-data",
             }
         })
-      .then( ()=> {
-        window.location.href = '/auth'
+      .then( response=> {
+        if(response.status==200)
+        {
+          Notification.requestPermission()
+         .then(permission => {
+          if (permission === 'granted') {
+            new Notification('Animaletto', {
+              body: 'Utente registrato con successo!'
+            });
+          }
+        });
+         router.push("/auth")
+        
+        }
       })
       .catch(() => {
-        alert("errore backend")
+        alert("Utente già registrato o errore nel contattare il server.")
         
       })
     }
+    function isValidEmail(email) 
+    {
+      // Definizione della RegEx per controllare l'email
+      const emailPattern = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/;
+      // Utilizzo della RegEx per validare l'email
+      return emailPattern.test(email);
+    }
+    function isValidFormat(stringa) 
+    {
+      return /[^\w\s]/gi.test(stringa);
+    }
+
     return{data,registerUser,goToLogin}
   }
 });

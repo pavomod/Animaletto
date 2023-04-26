@@ -11,7 +11,7 @@ const routes: Array<RouteRecordRaw> = [
     redirect: '/profile'
   },
   {
-    path: '/Profile',
+    path: '/profile',
     name: 'Profile',
     component: MyProfile
   },  

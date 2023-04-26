@@ -158,7 +158,7 @@
         </ion-card>
       </div>
       <div v-else>
-        Nessun post da visualizzare
+          <h1 style="color:white;text-align:center;">Nessun post da visualizzare</h1> 
       </div>
       </ion-list>
     </ion-content>
@@ -168,10 +168,22 @@
 
 
 <script setup>
-  import {IonRefresher, IonRefresherContent,IonImg,IonButton, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,IonToolbar,IonHeader,IonTitle,IonLabel,IonText,IonItem,IonList,IonContent,IonPage,IonSelect} from '@ionic/vue';
-  import { ref, onMounted } from 'vue';
+  import {onIonViewWillEnter,IonSelectOption,IonButtons,IonRefresher, IonRefresherContent,IonImg,IonButton, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,IonToolbar,IonHeader,IonTitle,IonLabel,IonText,IonItem,IonList,IonContent,IonPage,IonSelect,loadingController } from '@ionic/vue';
+  import { ref } from 'vue';
   import axios from 'axios';
+  import { useRouter } from "vue-router";
 
+
+
+  const showLoading = async () => {
+        const loading = await loadingController.create({
+          message: 'Caricamento...',
+          duration: 5000
+        });
+        
+        loading.present();
+      }
+  //refresh della pagina quando viene effettuato un scroll verso il basso all'inizio della page
   const handleRefresh = (event) => {
       setTimeout(() => {
         window.location.reload()
@@ -179,15 +191,17 @@
       }, 2000);
       return { handleRefresh };
     }
-
+  const load = ref({load:false});
   const isCollapsed=ref({isCollapsed:false})
-
+  const router = useRouter();
   const data = ref([]);
+  //possibili filtri di ricerca
   const filters = ref({      
         regione: "",
         tipologia: "",
         taglia: "",
         vaccinato: ""});
+  //append dei filtri per formare una query parametrizzata del tipo ?par&par1...
   const resetFilters = ()=>{
     let filtro="?"
     if(filters.value.regione!="")
@@ -198,39 +212,47 @@
       filtro+="taglia="+filters.value.taglia+"&"
     if(filters.value.vaccinato!="")
       filtro+="vaccinato="+filters.value.vaccinato+"&"
-    filtro=filtro.slice(0,-1)
+    filtro=filtro.slice(0,-1) //rimuove l'and (&) finale.
+    showLoading()
     getPosto(filtro)
   }
 
-  const goToProfile =()=>{window.location.href = '/profile'}
-
+  const goToProfile =()=>{router.push("/profile")}
+  //controllo del collapse del menu a tendina del filtri
   const toggleCollapse = () => {
   isCollapsed.value = !isCollapsed.value;
   }
 
-
+  //richiede tutti i post presenti nel db
   const getPosto = (filtri) =>{
+    
     if(filtri==undefined)
       filtri=""
-    const back= 'http://192.168.248.104:5000/getPost'+filtri
-    console.log(back)
+    const back= 'http://127.0.0.1:5000/getPost'+filtri
     axios.get(back,{
       headers: {
         "Authorization": localStorage.getItem("token")
       }
     })
     .then( response => {
-      data.value=response.data
-      console.log(data.value)
+      if(response.status==200)
+        data.value=response.data
+      
     })
-    .catch(error => {
-      console.log(error);
+    .catch(()=> {
+      console.log("");
     });}
-  onMounted(() => {
-    if(localStorage.getItem("token"))
+    onIonViewWillEnter(() => {
+    if(!load.value.load){
+      showLoading()
+      load.value.load=true
+    }
+    if(localStorage.getItem("token")){
       getPosto()
+    }
     else
-    window.location.href = '/auth'
+    router.push("/auth")
+    
   });
 
 
