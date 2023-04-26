@@ -8,45 +8,48 @@ from datetime import datetime, timedelta
 from flask_cors import CORS
 from flask.json import JSONEncoder
 import base64
-try:
-    client = MongoClient("mongodb+srv://gioele:Animaletto1.@animaletto.qy0pfrb.mongodb.net/test")
-except:
-    abort(505, "Errore nel contattare il server")
-db = client["animalettodb"]
-animali = db["post"]
-utenti = db["user"]
 
-class CustomJSONEncoder(JSONEncoder):
+
+
+
+class CustomJSONEncoder(JSONEncoder): #converte in stringa gli objectID 
     def default(self, obj):
         if isinstance(obj, ObjectId):
             return str(obj)
         return super().default(obj)
 
 
+try:
+    client = MongoClient("mongodb+srv://gioele:Animaletto1.@animaletto.qy0pfrb.mongodb.net/test") #connessione al server mongo
+except:
+    abort(505, "Errore nel contattare il server")
+db = client["animalettodb"]
+animali = db["post"] #documento degli annunci
+utenti = db["user"] #documento degli utenti registrati
 app = Flask(__name__)
-app.config["SECRET_KEY"]="b15af302e5f56b13fd72f5e693aa4abb"
+app.config["SECRET_KEY"]="b15af302e5f56b13fd72f5e693aa4abb" #chaive di codifica del token jwt
 app.json_encoder = CustomJSONEncoder
-CORS(app, resources={r"/*": {'origins': "*"}})
+CORS(app, resources={r"/*": {'origins': "*"}}) #formato e domini accettati, impostato su all per debug
 
-#Da implementare
-'''
-    aggiungere il caricamento di foto per i post, puoi farlo solo quando hai il front, se no non è testabile
-'''
 
 
 #route implementate
 '''
+    Registrazione
+    Login
     Autenticazione JWT
     Visualizzazione post personali
     Ricerca dei post con filtri
     Pubblicazione dei post
     Cancellazione dei post 
-    Registrazione
-    Login
+
 '''
 
 
-def create_token(username):
+def create_token(username): 
+    '''
+    Crea un token di autenticazione formato dall'username e la data di scadenza (30 min)
+    '''
     return jwt.encode({
         "username" : username,
         "expiration" : str(datetime.utcnow() + timedelta(minutes=30)),
@@ -54,6 +57,9 @@ def create_token(username):
     },app.config["SECRET_KEY"])
     
 def refresh_token(token):
+    '''
+    Ogni 30' viene refreshato il token dell'utente con la nuova data di scadenza.
+    '''
     try:
         token=jwt.decode(token,app.config["SECRET_KEY"],algorithms="HS256")
         if datetime.strptime(token["expiration"],"%Y-%m-%d %H:%M:%S.%f") < datetime.utcnow():
@@ -61,22 +67,18 @@ def refresh_token(token):
             token=jwt.decode(token,app.config["SECRET_KEY"],algorithms="HS256")
         return token
     except (RuntimeError, KeyError):
-        # Case where there is not a valid JWT. Just return the original response
         return {"message":"errore creazione token"},500
 
-def token_required(func):
+def token_required(func): 
+    '''
+    Funzione wrap che prima di permettere l'uso di un metodo verifica la presenza e la validità del token
+    '''
     @wraps(func)
     def decorated(*args, **kwargs):
         token=request.headers.get("Authorization")
         if token is None:
             return jsonify({"message":"token mancante"}),401
-       
-        #try:
-            #payload=jwt.decode(token,app.config["SECRET_KEY"],algorithms="HS256")
         payload=refresh_token(token)
-       # except:
-        #    return jsonify({"message":"token non valido"}),403
-        
         return func(payload,*args, **kwargs)
     return decorated
     
@@ -84,24 +86,30 @@ def token_required(func):
 
 @app.route('/login',methods=["POST"])
 def login():
+    '''
+    Effettua il login dell'utente assegnando un token di autenticazione in caso di corrispondenza con il DB.
+    '''
     query={}
     query["username"]=request.form["username"]
     query["password"]=request.form["password"]    
 
     if query["username"]=="" or query["password"]=="":
-       abort(400,"Stringhe vuote")
+       return {"message":"Stringhe vuote"},400
 
     
     query["password"]=hashlib.md5(query["password"].encode('utf-8')).hexdigest()
     if utenti.find_one(query) is None:
-        abort(404,"Nessun utente con queste credenziali")
+        return {"message":"Nessun utente con queste credenziali"},404
 
     token=create_token(query["username"])
-
+    log("L'utente ["+query["username"]+"] ha effettuato l'accesso.")
     return jsonify({"token":token}),200
 
 @app.route('/signin',methods=["POST"])
 def signin():
+    '''
+    Registra un utente solo se l'username non è già presente nel DB
+    '''
     query={}
     query["username"]=request.form["username"]
     query["password"]=request.form["password"]    
@@ -110,29 +118,35 @@ def signin():
     query["email"]=request.form["email"] 
     query["cellulare"]=request.form["cellulare"] 
     if query["username"]=="" or query["password"]==""  or query["nome"]=="" or query["cognome"]=="":
-        abort(400,"Stringhe vuote")
-
+        return {"message":"Stringhe vuote"},400
     try:
         if not utenti.find_one({"username":query["username"]}) is None:
-            abort(409,"Utente già presente")
+            return {"message":"Utente gia presente"},409
     except WriteError:
-        abort(505, "Errore nel contattare il server")
+        return {"message":"Errore nel contattare il server"},505
 
     try:
         query["password"]=hashlib.md5(query["password"].encode('utf-8')).hexdigest()
         utenti.insert_one(query)
     except WriteError:
-        abort("Errore nel contattare il server",500)
-
-    return "ok", 200
+        return {"message":"Errore nel contattare il server"},505
+    log("L'utente ["+query["username"]+"] e stato registrato.")
+    return {"message":"ok"}, 200
 
 
 @app.route('/')
 def index():
-    return 'Animalettiiiiiiii'
+    '''
+    Inutile, ma è la prima route che ho creato per provare flask
+    '''
+    return {"message":'Animalettiiiiiiii'},202
 
 
 def ricerca(oldfiltro):
+    '''
+    Query al db con filtro per ricerca di annunci. 
+    Restituisce una lista di dizionari.
+    '''
     filtro={}
     for key, value in oldfiltro.items():
         if not value is None:
@@ -140,7 +154,7 @@ def ricerca(oldfiltro):
     try:
         an= list(animali.find(filtro))
     except WriteError:
-        abort(505, "Errore nel contattare il server")
+        return {"message":"Errore nel contattare il server"},505
     return an
 
 
@@ -148,11 +162,13 @@ def ricerca(oldfiltro):
 @app.route('/getPost',methods=["GET"]) 
 @token_required
 def getPost(username):
+    '''
+    Restituisce tutti i post se non viene passato nessun parametro
+    Restituisce tutti i post o i post filtrati per: [razza,taglia,tipologia,vaccinato,regione]
+    '''
     username=username["username"]
-    '''
-    restituisce tutti i post se non viene passato nessun parametro
-    restituisce tutti i post o i post filtrati per: [razza,taglia,tipologia,vaccinato,regione]
-    '''
+
+    
     filtro={}
     filtro["regione"]=request.args.get("regione")
     filtro["tipologia"]=request.args.get("tipologia")
@@ -168,27 +184,28 @@ def getPost(username):
     for an in animal:
         creatore=an["creatore"]
         if creatore is None:
-            abort(404, "Nessun utente associato alla creazione del post")
+            return {"message":"Erorre username creatore"},404
         try:    
           user=utenti.find_one({"username":creatore})
         except WriteError:
-            abort(500, "Errore nel contattare il server")
+            return {"message":"Errore nel contattare il server"},500
         if user is None:
-            abort(404, "Nessun utente con l'username indicato ")
+            return {"message":"Errore username creatore"},404
         an["creatore"]=user
         ret.append(an)
     ret.reverse()
+    
     return jsonify(ret),200
 
 @app.route('/publishPost',methods=["POST"]) 
 @token_required
 def publishPost(username):
-    
+    '''
+    Carica un annuncio sul db nella tabella POST associandogli l'username del creatore.
+    L'username viene estratto dal token.
+    '''
     username=username["username"]
 
-    '''
-    Aggiunge un nuovo post associato all'utente
-    '''
     query={}
     query["regione"]=request.form["regione"]
     query["tipologia"]=request.form["tipologia"]
@@ -206,65 +223,82 @@ def publishPost(username):
     
     try:
         if utenti.find_one({"username":username}) is None:
-            abort(400,"errore creatore post")
+            return {"message":"Errore username creatore"},400
     except WriteError:
-        abort(505, "Errore nel contattare il server")
+        return {"message":"Errore nel contattare il server"},500
     query["creatore"]=username
 
     query["anni"]=int(query["anni"])
     try:
         animali.insert_one(query)
     except WriteError:
-        abort("Errore nel contattare il server",500)
-
-    return "ok",200
+        return {"message":"Errore nel contattare il server"},500
+    
+    log("L'utente ["+username+"] ha pubblicato un post.")
+    return {"message":"ok"},200
 
 @app.route('/deletePost',methods=["POST"]) 
 @token_required
 def deletePost(username):
     '''
-    Elimina un post con un determinato id (può solo chi l'ha creato).
+    Elimina un post con un determinato ID.
     '''
     username=username["username"]
     try:
         result = animali.delete_one({'_id': ObjectId(request.form["id"])})
     except WriteError:
-        abort(505, "Errore nel contattare il server")
+        return {"message":"Errore nel contattare il server"},500
     if result.deleted_count != 1:
-        abort("Nessun post trovato", 404)
-    return "ok", 200
+        return {"message":"Nessun post trovato"},404
+    log("L'utente ["+username+"] ha eliminato il post ["+request.form["id"]+"].")
+    return {"message":"ok"}, 200
     
 
 
 @app.route('/getMyPost',methods=["GET"]) 
 @token_required
 def getMyPost(username):
+    '''
+    Restituisce tutti i post associati ad un utente, l'username del creatore è estratto dal token
+    '''
     username=username["username"]
-    '''
-    restituisce tutti i post associati ad un utente, l'username del creatore è estratto dal token
-    '''
+    
     try:
         animal=list(animali.find({"creatore":username}))
     except WriteError:
-        abort(505, "Errore nel contattare il server")
-    if len(animal)==0 or animal is None:
-        abort(404,"Nessun animale trovato o problemi nel contattare il server")
+        return {"message":"Errore nel contattare il server"},500
+    if len(animal)==0:
+        return {"message":"Nessun post trovato"},404
     ret=[]
+    
     for an in animal:
         creatore=an["creatore"]
         if creatore is None:
-            abort(404, "Nessun utente associato alla creazione del post")
+            return {"message":"Errore username creatore post"},404
         try:
             user=utenti.find_one({"username":creatore})
         except WriteError:
-            abort(505, "Errore nel contattare il server")
+            return {"message":"Errore nel contattare il server"},500
         if user is None:
-            abort(404, "Nessun utente con l'username indicato ")
+            return {"message":"Errore username creatore post"},404
         an["creatore"]=user
         ret.append(an)
     ret.reverse()
+    
     return jsonify(ret),200
+
+def log(message):
+    '''
+    Aggiunge una stringa nel file di log con data e ora corrente.
+    '''
+    now = datetime.now()
+    timestamp = now.strftime("%Y-%m-%d %H:%M:%S")
+    with open("log.txt", "a") as f:
+        f.write(f"[{timestamp}] {message}\n")
 
 
 if __name__ == '__main__':
+    '''
+    Host impostato su 0.0.0.0 nel caso del deploy online del back. [Es. pythoneverywhere da errore con 127.0.0.1]
+    '''
     app.run(host="0.0.0.0",port=5000,debug=True)
