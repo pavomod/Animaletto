@@ -20,14 +20,14 @@ class CustomJSONEncoder(JSONEncoder): #converte in stringa gli objectID
 
 
 try:
-    client = MongoClient("") #connessione al server mongo
+    client = MongoClient("mongodb+srv://gioele:Animaletto1.@animaletto.qy0pfrb.mongodb.net/test") #connessione al server mongo
 except:
     abort(505, "Errore nel contattare il server")
 db = client["animalettodb"]
 animali = db["post"] #documento degli annunci
 utenti = db["user"] #documento degli utenti registrati
 app = Flask(__name__)
-" #chaive di codifica del token jwt
+app.config["SECRET_KEY"]="b15af302e5f56b13fd72f5e693aa4abb" #chaive di codifica del token jwt
 app.json_encoder = CustomJSONEncoder
 CORS(app, resources={r"/*": {'origins': "*"}}) #formato e domini accettati, impostato su all per debug
 
@@ -103,6 +103,10 @@ def login():
 
     token=create_token(query["username"])
     log("L'utente ["+query["username"]+"] ha effettuato l'accesso.")
+    #modifica appena implementata
+    token=str(token)
+    token=token[1:]
+    token = token.replace("'", "")
     return jsonify({"token":token}),200
 
 @app.route('/signin',methods=["POST"])
