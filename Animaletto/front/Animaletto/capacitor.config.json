@@ -1,0 +1,6 @@
+{
+	"appId": "io.ionic.starter",
+	"appName": "Animaletto",
+	"webDir": "dist",
+	"bundledWebRuntime": false
+}

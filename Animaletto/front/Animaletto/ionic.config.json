@@ -1,0 +1,7 @@
+{
+  "name": "Animaletto",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue"
+}
