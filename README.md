@@ -1,7 +1,7 @@
 # Animaletto - Il Social per l'Adozione di Animali 🐾
 
 ## Introduzione 🌟
-Benvenuti su Animaletto, il social network dedicato a tutti coloro che desiderano adottare un animale. Animaletto è una piattaforma che permette agli utenti di pubblicare foto e dettagli degli animali disponibili per l'adozione, facilitando il contatto tra chi cerca un nuovo amico a quattro zampe e chi desidera trovare una nuova casa per i propri animali.
+Animaletto è pensato come un social network dedicato a tutti coloro che desiderano adottare un animale. Animaletto è una piattaforma che permette agli utenti di pubblicare foto e dettagli degli animali disponibili per l'adozione, facilitando il contatto tra chi cerca un nuovo amico a quattro zampe e chi desidera trovare una nuova casa per i propri animali.
 
 ## Caratteristiche 📋
 - **Pubblicazione Annunci**: Gli utenti possono caricare foto, dettagli sull'animale (età, sesso, razza, ecc.) e le proprie informazioni di contatto.
