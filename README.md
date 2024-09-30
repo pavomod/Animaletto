@@ -1,12 +1,12 @@
-# Animaletto - Il Social per l'Adozione di Animali 🐾
+# Animaletto - The Social Network for Animal Adoption 🐾
 
-## Introduzione 🌟
-Animaletto è pensato come un social network dedicato a tutti coloro che desiderano adottare un animale. Animaletto è una piattaforma che permette agli utenti di pubblicare foto e dettagli degli animali disponibili per l'adozione, facilitando il contatto tra chi cerca un nuovo amico a quattro zampe e chi desidera trovare una nuova casa per i propri animali.
+## Introduction 🌟
+Animaletto is designed as a social network for those looking to adopt a pet. The platform allows users to post photos and details of animals available for adoption, making it easy for people looking for a new furry friend to connect with those who wish to find a new home for their animals.
 
-## Caratteristiche 📋
-- **Pubblicazione Annunci**: Gli utenti possono caricare foto, dettagli sull'animale (età, sesso, razza, ecc.) e le proprie informazioni di contatto.
-- **Bacheca Filtrabile**: La piattaforma dispone di una bacheca dove è possibile filtrare gli annunci per tipologia di animale, provincia, razza, e altri criteri specifici, rendendo più semplice trovare l'animale giusto per te.
-- **Profilo personale**: La piattaforma dispone di un profilo personale in cui è possibile gestire i propri annunci.
-- **Database Non Relazionale**: E'stato utilizzato MongoDB per gestire i dati in modo efficiente, sfruttando la flessibilità di un database non relazionale per adattarsi alle diverse esigenze di informazione degli annunci.
-- **Frontend in Vue.js**: Il front-end è sviluppato utilizzando Vue.js, e IONIC offrendo un'interfaccia utente reattiva, veloce e facile da navigare. E' una PWA (Progressive Web App), che aspetti ad installarla? 
-- **Backend in Flask**: Il backend è costruito con Flask.
+## Features 📋
+- **Post Announcements**: Users can upload photos, provide details about the animal (age, gender, breed, etc.), and share their contact information.
+- **Filterable Notice Board**: The platform offers a notice board where users can filter posts by animal type, location, breed, and other specific criteria, making it easier to find the right pet for you.
+- **Personal Profile**: Users can manage their own posts and adoption listings from their personal profile.
+- **Non-Relational Database**: MongoDB is used to efficiently manage data, leveraging the flexibility of a non-relational database to accommodate the various informational needs of the listings.
+- **Frontend in Vue.js**: The front-end is developed using Vue.js and IONIC, providing a responsive, fast, and easy-to-navigate user interface. It's a PWA (Progressive Web App)—what are you waiting for? Install it now!
+- **Backend in Flask**: The backend is built with Flask.
